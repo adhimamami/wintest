@@ -1,5 +1,37 @@
-- name: Install Cloudflare Tunnel
-  run: |
-    Invoke-WebRequest -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe" -OutFile "cloudflared.exe"
-    Move-Item -Path "cloudflared.exe" -Destination "$env:USERPROFILE\cloudflared.exe"
-  shell: powershell
+name: Setup Cloudflare Tunnel
+
+on: push
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Cloudflare Tunnel
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe" -OutFile "cloudflared.exe"
+          Move-Item -Path "cloudflared.exe" -Destination "$env:USERPROFILE\cloudflared.exe"
+        shell: powershell
+
+      - name: Authenticate Cloudflare Tunnel
+        run: |
+          $cloudflared = "$env:USERPROFILE\cloudflared.exe"
+          & $cloudflared tunnel login
+        shell: powershell
+
+      - name: Create & Start Cloudflare Tunnel for RDP
+        run: |
+          $cloudflared = "$env:USERPROFILE\cloudflared.exe"
+          & $cloudflared tunnel create github-rdp
+          & $cloudflared tunnel route dns github-rdp <subdomain-dari-cloudflare>
+          & $cloudflared tunnel --url rdp://localhost:3389 --name github-rdp
+        shell: powershell
+
+      - name: Get Cloudflare Tunnel URL
+        run: |
+          $cloudflared = "$env:USERPROFILE\cloudflared.exe"
+          Start-Process -NoNewWindow -FilePath $cloudflared -ArgumentList "tunnel info github-rdp"
+        shell: powershell
