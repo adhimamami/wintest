@@ -1,0 +1,5 @@
+- name: Install Cloudflare Tunnel
+  run: |
+    Invoke-WebRequest -Uri "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe" -OutFile "cloudflared.exe"
+    Move-Item -Path "cloudflared.exe" -Destination "$env:USERPROFILE\cloudflared.exe"
+  shell: powershell
