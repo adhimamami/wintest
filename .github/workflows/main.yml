@@ -1,7 +1,7 @@
 name: Setup RDP via Ngrok
 
 on: 
-  workflow_dispatch  # Menjalankan workflow secara manual
+  workflow_dispatch  # Workflow dapat dijalankan secara manual
 
 jobs:
   build:
@@ -10,28 +10,46 @@ jobs:
     steps:
     - name: Setup RDP
       run: |
-        Enable-PSRemoting -Force
+        # Buat user 'github' dengan password yang memenuhi kebijakan
         net user github "Github@1234" /add
         net localgroup Administrators github /add
+        # Nonaktifkan firewall (opsional, untuk testing)
         netsh advfirewall set allprofiles state off
+        # Aktifkan Remote Desktop
         Set-ItemProperty 'HKLM:\System\CurrentControlSet\Control\Terminal Server\' -Name "fDenyTSConnections" -Value 0
         Get-NetFirewallRule -DisplayGroup "Remote Desktop" | Set-NetFirewallRule -Enabled True
-        Install-WindowsFeature -Name RDS-RD-Server -IncludeAllSubFeature -IncludeManagementTools
+      shell: powershell
 
     - name: Download Ngrok
       run: |
         Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip" -OutFile "ngrok.zip"
-        Expand-Archive ngrok.zip -DestinationPath "$env:USERPROFILE\ngrok"
+        Expand-Archive -Path "ngrok.zip" -DestinationPath "$env:USERPROFILE\ngrok"
+      shell: powershell
 
-    - name: Start Ngrok Tunnel
+    - name: Authenticate Ngrok
       env:
         NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
       run: |
-        Start-Process -NoNewWindow -FilePath "$env:USERPROFILE\ngrok\ngrok.exe" -ArgumentList "authtoken $env:NGROK_AUTH_TOKEN"
-        Start-Process -NoNewWindow -FilePath "$env:USERPROFILE\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
-        Start-Sleep -s 10
-        Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
+        $ngrokExe = "$env:USERPROFILE\ngrok\ngrok.exe"
+        & $ngrokExe authtoken $env:NGROK_AUTH_TOKEN
+        Start-Sleep -Seconds 5
+      shell: powershell
+
+    - name: Start Ngrok Tunnel
+      run: |
+        $ngrokExe = "$env:USERPROFILE\ngrok\ngrok.exe"
+        # Mulai tunnel untuk port 3389 (RDP)
+        Start-Process -NoNewWindow -FilePath $ngrokExe -ArgumentList "tcp 3389"
+        Start-Sleep -Seconds 10
+      shell: powershell
+
+    - name: Get Ngrok Tunnel URL
+      run: |
+        $response = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
+        Write-Output "Ngrok Tunnel URL: $($response.tunnels[0].public_url)"
+      shell: powershell
 
     - name: Keep Alive
       run: |
-        while ($true) { Start-Sleep -s 3600 }
+        while ($true) { Start-Sleep -Seconds 3600 }
+      shell: powershell
