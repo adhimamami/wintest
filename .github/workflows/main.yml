@@ -16,22 +16,17 @@ jobs:
           Move-Item -Path "cloudflared.exe" -Destination "$env:USERPROFILE\cloudflared.exe"
         shell: powershell
 
-      - name: Authenticate Cloudflare Tunnel
+      - name: Authenticate Cloudflare Tunnel with Token
         run: |
           $cloudflared = "$env:USERPROFILE\cloudflared.exe"
-          & $cloudflared tunnel login
+          & $cloudflared service install
+          & $cloudflared tunnel --token YOUR_CLOUDFLARE_TUNNEL_TOKEN
         shell: powershell
+        env:
+          CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CF_TUNNEL_TOKEN }}
 
-      - name: Create & Start Cloudflare Tunnel for RDP
+      - name: Start Cloudflare Tunnel for RDP
         run: |
           $cloudflared = "$env:USERPROFILE\cloudflared.exe"
-          & $cloudflared tunnel create github-rdp
-          & $cloudflared tunnel route dns github-rdp <subdomain-dari-cloudflare>
-          & $cloudflared tunnel --url rdp://localhost:3389 --name github-rdp
-        shell: powershell
-
-      - name: Get Cloudflare Tunnel URL
-        run: |
-          $cloudflared = "$env:USERPROFILE\cloudflared.exe"
-          Start-Process -NoNewWindow -FilePath $cloudflared -ArgumentList "tunnel info github-rdp"
+          Start-Process -NoNewWindow -FilePath $cloudflared -ArgumentList "tunnel run"
         shell: powershell
