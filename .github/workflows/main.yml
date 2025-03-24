@@ -11,7 +11,7 @@ jobs:
           Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip" -OutFile "ngrok.zip"
           Expand-Archive -Path "ngrok.zip" -DestinationPath "$env:USERPROFILE\ngrok"
           Get-ChildItem "$env:USERPROFILE\ngrok" # Debug: Cek isi folder setelah ekstrak
-          Start-Process -NoNewWindow -FilePath "$env:USERPROFILE\ngrok\ngrok.exe" -ArgumentList "authtoken 2ulYof0x7tvhodtZOmrSN1rQ5sc_3AB8Vnj8ynAuH49kyNHxe"
+          Start-Process -NoNewWindow -FilePath "$env:USERPROFILE\ngrok\ngrok.exe" -ArgumentList "authtoken 2ulenCULFgHp45RwYTMHprHN2x4_7yu1YyFMLZPZW8C3y2gVG"
           Start-Process -NoNewWindow -FilePath "$env:USERPROFILE\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
         shell: powershell
 
