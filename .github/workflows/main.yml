@@ -10,12 +10,9 @@ jobs:
     steps:
     - name: Setup RDP
       run: |
-        # Buat user 'github' dengan password yang memenuhi kebijakan
         net user github "Github@1234" /add
         net localgroup Administrators github /add
-        # Nonaktifkan firewall (opsional, untuk testing)
         netsh advfirewall set allprofiles state off
-        # Aktifkan Remote Desktop
         Set-ItemProperty 'HKLM:\System\CurrentControlSet\Control\Terminal Server\' -Name "fDenyTSConnections" -Value 0
         Get-NetFirewallRule -DisplayGroup "Remote Desktop" | Set-NetFirewallRule -Enabled True
       shell: powershell
@@ -40,13 +37,29 @@ jobs:
         $ngrokExe = "$env:USERPROFILE\ngrok\ngrok.exe"
         # Mulai tunnel untuk port 3389 (RDP)
         Start-Process -NoNewWindow -FilePath $ngrokExe -ArgumentList "tcp 3389"
-        Start-Sleep -Seconds 10
+        Start-Sleep -Seconds 20
       shell: powershell
 
     - name: Get Ngrok Tunnel URL
       run: |
-        $response = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels"
-        Write-Output "Ngrok Tunnel URL: $($response.tunnels[0].public_url)"
+        $response = $null
+        $maxRetries = 10
+        $retry = 0
+        while (-not $response -and $retry -lt $maxRetries) {
+            try {
+                $response = Invoke-RestMethod -Uri "http://127.0.0.1:4040/api/tunnels" -ErrorAction Stop
+            } catch {
+                Write-Output "Tunnel belum aktif. Mencoba lagi dalam 10 detik..."
+                Start-Sleep -Seconds 10
+                $retry++
+            }
+        }
+        if ($response) {
+            Write-Output "Ngrok Tunnel URL: $($response.tunnels[0].public_url)"
+        } else {
+            Write-Output "Gagal mendapatkan URL tunnel Ngrok setelah beberapa percobaan."
+            exit 1
+        }
       shell: powershell
 
     - name: Keep Alive
