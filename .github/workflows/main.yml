@@ -8,8 +8,8 @@ jobs:
     steps:
       - name: Enable RDP
         run: |
-          net user administrator /active:yes
-          net user administrator MySecurePassword123!
           reg add "HKLM\System\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
           netsh advfirewall firewall set rule group="remote desktop" new enable=yes
+          powershell.exe -ExecutionPolicy Bypass -Command "& {Enable-PSRemoting -Force}"
           powershell.exe -ExecutionPolicy Bypass -Command "& {Start-Service termservice}"
+          net user runneradmin MySecurePassword123!
