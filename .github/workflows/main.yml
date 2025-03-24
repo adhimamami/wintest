@@ -8,19 +8,21 @@ jobs:
     steps:
       - name: Install Ngrok
         run: |
-          Invoke-WebRequest -Uri https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-          Expand-Archive ngrok.zip
-          ./ngrok.exe authtoken 2ulYof0x7tvhodtZOmrSN1rQ5sc_3AB8Vnj8ynAuH49kyNHxe
-          ./ngrok.exe tcp 3389 > ngrok.log &
+          Invoke-WebRequest -Uri "https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip" -OutFile "ngrok.zip"
+          Expand-Archive -Path "ngrok.zip" -DestinationPath "$env:USERPROFILE"
+          cd $env:USERPROFILE\ngrok
+          .\ngrok.exe authtoken 2ulYof0x7tvhodtZOmrSN1rQ5sc_3AB8Vnj8ynAuH49kyNHxe
+          Start-Process -NoNewWindow -FilePath .\ngrok.exe -ArgumentList "tcp 3389"
+        shell: powershell
 
       - name: Enable RDP and Firewall
         run: |
           reg add "HKLM\System\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
           netsh advfirewall firewall set rule group="remote desktop" new enable=yes
-          powershell.exe -ExecutionPolicy Bypass -Command "& {Enable-PSRemoting -Force}"
-          powershell.exe -ExecutionPolicy Bypass -Command "& {Start-Service termservice}"
-          net user runneradmin MySecurePassword123!
           net localgroup Administrators runneradmin /add
+          net user runneradmin MySecurePassword123!
+        shell: cmd
 
       - name: Get Ngrok Address
-        run: Get-Content ngrok.log
+        run: Get-Content $env:USERPROFILE\ngrok\ngrok.log
+        shell: powershell
