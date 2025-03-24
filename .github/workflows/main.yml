@@ -1,4 +1,4 @@
-name: Free RDP Windows
+name: Free Windows Remote Access
 
 on: workflow_dispatch
 
@@ -6,10 +6,21 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: Enable RDP
+      - name: Install Ngrok
+        run: |
+          Invoke-WebRequest -Uri https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+          Expand-Archive ngrok.zip
+          ./ngrok.exe authtoken 2ulYof0x7tvhodtZOmrSN1rQ5sc_3AB8Vnj8ynAuH49kyNHxe
+          ./ngrok.exe tcp 3389 > ngrok.log &
+
+      - name: Enable RDP and Firewall
         run: |
           reg add "HKLM\System\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
           netsh advfirewall firewall set rule group="remote desktop" new enable=yes
           powershell.exe -ExecutionPolicy Bypass -Command "& {Enable-PSRemoting -Force}"
           powershell.exe -ExecutionPolicy Bypass -Command "& {Start-Service termservice}"
           net user runneradmin MySecurePassword123!
+          net localgroup Administrators runneradmin /add
+
+      - name: Get Ngrok Address
+        run: Get-Content ngrok.log
